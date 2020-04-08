@@ -1,0 +1,51 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: cnn
+spec:
+  hosts:
+  - edition.cnn.com
+  ports:
+  - name: http
+    protocol: HTTP
+    number: 80
+  - name: https
+    protocol: HTTPS
+    number: 443
+  resolution: DNS
+  location: MESH_EXTERNAL
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: cnn
+spec:
+  hosts:
+  - edition.cnn.com
+  http:
+  - match:
+    - port: 80
+    route:
+    - destination:
+        host: edition.cnn.com
+        port:
+          number: 443
+        subset: tls-origination
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: cnn
+spec:
+  host: edition.cnn.com
+  subsets:
+  - name: tls-origination
+    trafficPolicy:
+      loadBalancer:
+        simple: ROUND_ROBIN
+      portLevelSettings:
+      - port:
+          number: 443
+        tls:
+          mode: SIMPLE
+---
