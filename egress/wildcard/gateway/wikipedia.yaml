@@ -1,0 +1,70 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: egressgateway
+spec:
+  selector:
+    istio: egressgateway
+  servers:
+  - hosts:
+    - '*.wikipedia.org'
+    port:
+      name: tls
+      protocol: TLS
+      number: 443
+    tls:
+      mode: PASSTHROUGH
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: egressgateway
+spec:
+  host: istio-egressgateway.istio-system.svc.cluster.local
+  subsets:
+  - name: wikipedia
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: wikipeia
+spec:
+  hosts:
+  - '*.wikipedia.org'
+  gateways:
+  - mesh
+  - egressgateway
+  tls:
+  - match:
+    - gateways:
+      - mesh
+      port: 443
+      sni_hosts:
+      - '*.wikipedia.org'
+    route:
+    - destination:
+        host: istio-egressgateway.istio-system.svc.cluster.local
+        subset: wikipedia
+  - match:
+    - gateways:
+      - egressgateway
+      port: 443
+      sni_hosts:
+      - '*.wikipedia.org'
+    route:
+    - destination:
+        host: www.wikipedia.org
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: wikipedia
+spec:
+  hosts:
+  - www.wikipedia.org
+  ports:
+  - name: tls
+    protocol: TLS
+    number: 443
+  resolution: DNS
+---
