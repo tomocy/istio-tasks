@@ -1,0 +1,87 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ingress
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - hosts:
+    - httpbin.org
+    port:
+      name: http
+      protocol: HTTP
+      number: 80
+  - hosts:
+    - edition.cnn.com
+    port:
+      name: https
+      protocol: HTTPS
+      number: 443
+    tls:
+      mode: PASSTHROUGH
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: httpbin
+spec:
+  hosts:
+  - httpbin.org
+  gateways:
+  - ingress
+  http:
+  - match:
+    - port: 80
+      uri:
+        prefix: /status
+    route:
+    - destination:
+        host: httpbin.org
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: cnn
+spec:
+  hosts:
+  - edition.cnn.com
+  gateways:
+  - ingress
+  tls:
+  - match:
+    - port: 443
+      sni_hosts:
+      - edition.cnn.com
+    route:
+    - destination:
+        host: edition.cnn.com
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: httpbin
+spec:
+  hosts:
+  - httpbin.org
+  ports:
+  - name: http
+    protocol: HTTP
+    number: 80
+  resolution: DNS
+  location: MESH_EXTERNAL
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: cnn
+spec:
+  hosts:
+  - edition.cnn.com
+  ports:
+  - name: https
+    protocol: HTTPS
+    number: 443
+  resolution: DNS
+  location: MESH_EXTERNAL
+---
